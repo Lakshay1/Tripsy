@@ -11,6 +11,7 @@ from googleapiclient.errors import HttpError # type: ignore
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+GMAIL_CREDS_LOCAL_PATH = '/Users/lakshayk/Developer/Tripsy/Tripsy/tools/email_tool/'
 
 # class EmailTool:
 
@@ -22,8 +23,8 @@ def authenticate_gmail_api():
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if os.path.exists(os.path.join(GMAIL_CREDS_LOCAL_PATH, 'token.json')):
+        creds = Credentials.from_authorized_user_file(os.path.join(GMAIL_CREDS_LOCAL_PATH, 'token.json'), SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -31,7 +32,7 @@ def authenticate_gmail_api():
         else:
             # Ensure credentials.json is in the same directory
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                os.path.join(GMAIL_CREDS_LOCAL_PATH, 'credentials.json'), SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
@@ -39,7 +40,7 @@ def authenticate_gmail_api():
 
     return creds
 
-def build_query(labels=None, start_date=None, end_date=None, title_keywords=None, content_keywords=None):
+def build_query(labels=['INBOX', 'UPDATES'], start_date=None, end_date=None, title_keywords=None, content_keywords=None):
     """
     Builds the Gmail API query string based on provided filters.
 
@@ -56,8 +57,9 @@ def build_query(labels=None, start_date=None, end_date=None, title_keywords=None
     query_parts = []
 
     if labels:
-        # Labels are combined with AND logic in Gmail API query
-        query_parts.extend([f'label:{label}' for label in labels])
+        # By default, labels are combined with AND logic in Gmail API query
+        label_query_parts = [f'label:{label}' for label in labels]
+        query_parts.append(' OR '.join(label_query_parts))
 
     if start_date:
         query_parts.append(f'after:{start_date}')
@@ -65,9 +67,11 @@ def build_query(labels=None, start_date=None, end_date=None, title_keywords=None
     if end_date:
         query_parts.append(f'before:{end_date}')
 
-    # if title_keywords:
-    #     # Title keywords use 'subject:' operator and are combined with AND
-    #     query_parts.extend([f'subject:"{keyword}"' for keyword in title_keywords])
+    # Modified to use OR logic for title_keywords
+    if title_keywords:
+        # Title keywords use 'subject:' operator and are combined with OR
+        subject_query_parts = [f'subject:"{keyword}"' for keyword in title_keywords]
+        query_parts.append(' OR '.join(subject_query_parts))
 
     # if content_keywords:
     #     # Content keywords are searched in the full text and combined with AND
@@ -126,7 +130,7 @@ def get_email_body_html_and_plain(message):
     # Prioritize HTML if both are available
     return html_body, plain_text_body
 
-def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=None, content_keywords=None, max_results=10):
+def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=None, content_keywords=None, max_results=1000):
     """
     Fetches emails from Gmail based on specified filters.
 
@@ -146,7 +150,7 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
     creds = authenticate_gmail_api()
     if not creds:
         print("Authentication failed.")
-        return []
+        raise Exception("Authentication failed.")
 
     try:
         # Build the Gmail service
@@ -193,64 +197,65 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
                         email_data['to'] = header['value']
                     elif header['name'] == 'Date':
                         email_data['date'] = header['value']
+                
+                body = (html_body or plain_text_body or '') # Use HTML body if available, otherwise use plain text
+                email_data['body'] = body # Add the body to the email data for llm parsing
 
-                # # Content parsing (basic example: check if content keywords are in the body)
-                # # This is already handled by the API query for content_keywords,
-                # # but you could add more complex parsing here if needed.
-                # if content_keywords:
-                #     body = email_data.get('body', '').lower()
-                #     if not all(keyword.lower() in body for keyword in content_keywords):
-                #         # Skip this email if content keywords are not in the body (shouldn't happen with API query)
-                #         continue
+                # Match content
                 content_match = False
                 if content_keywords:
-                    content_to_search = (html_body or plain_text_body or "").lower() # Search in HTML or plain text if HTML is missing
+                    content_to_search = email_data['subject'] + body.lower() # Search in HTML or plain text if HTML is missing
+                    # print(content_to_search)
                     for keyword in content_keywords:
                         if keyword.lower() in content_to_search:
                             content_match = True
                             break # If any keyword is found, this email doesn't match
+                        if content_match:
+                            break
 
                 if content_match:
+                     print(f"Email ID: {email_data['id']}")
+                     print(f"Subject: {email_data['subject']}")
+                     print(f"From: {email_data['from']}")
+                     print(f"Date: {email_data['date']}")
                      fetched_emails.append(email_data)
 
         return fetched_emails
 
     except HttpError as error:
         print(f'An API error occurred: {error}')
-        return []
-    except FileNotFoundError:
+        raise error
+    except FileNotFoundError as e:
         print("Error: 'credentials.json' not found. Please download it from the Google Cloud Console.")
-        return []
+        raise e
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return []
+        raise e
 
 # Example usage:
-if __name__ == '__main__':
-    # To run this example:
-    # 1. Go to the Google Cloud Console (console.cloud.google.com).
-    # 2. Create a new project or select an existing one.
-    # 3. Enable the Gmail API for your project.
-    # 4. Go to "Credentials" and create OAuth 2.0 Client IDs.
-    # 5. Choose "Desktop app" and create the credentials.
-    # 6. Download the client configuration JSON file and rename it to 'credentials.json'.
-    # 7. Place 'credentials.json' in the same directory as this Python script.
-    # 8. Run the script. It will open a browser window for authentication the first time.
+# if __name__ == '__main__':
+#     # To run this example:
+#     # 1. Go to the Google Cloud Console (console.cloud.google.com).
+#     # 2. Create a new project or select an existing one.
+#     # 3. Enable the Gmail API for your project.
+#     # 4. Go to "Credentials" and create OAuth 2.0 Client IDs.
+#     # 5. Choose "Desktop app" and create the credentials.
+#     # 6. Download the client configuration JSON file and rename it to 'credentials.json'.
+#     # 7. Place 'credentials.json' in the same directory as this Python script.
+#     # 8. Run the script. It will open a browser window for authentication the first time.
 
-    print("Fetching emails from INBOX ...")
-    emails = fetch_emails(labels=['INBOX', 'UPDATES'], start_date='2025/01/01', end_date='2025/03/20', title_keywords=['itinerary', 'booking'],
-                          content_keywords=['trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking'])
-    if emails:
-        for email in emails:
-            print("-" * 20)
-            print(f"ID: {email.get('id')}")
-            print(f"Subject: {email.get('subject')}")
-            print(f"From: {email.get('from')}")
-            print(f"Date: {email.get('date')}")
-            # print(f"Body: {email.get('body')[:200]}...") # Print first 200 chars of body
-            # print(f"HTML Body: {email.get('html_body')[:1000]}...")
-            # print(f"Plain Text Body: {email.get('plain_text_body')[:1000]}...")
-    else:
-        print("No emails found matching the criteria.")
+#     # print("Fetching emails from INBOX ...")
+#     emails = fetch_emails(labels=['INBOX', 'UPDATES'], start_date='2025/03/09', end_date='2025/03/20',
+#                           title_keywords=['Your itinerary', 'booking', 'reservation', 'trip', 'flight', 'hotel', 'emirates', 'airline'],
+#                           content_keywords=['emirates', 'trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking'])
+#     if emails:
+#         for email in emails:
+#             print("-" * 20)
+#             print(f"ID: {email.get('id')}")
+#             print(f"Subject: {email.get('subject')}")
+#             print(f"From: {email.get('from')}")
+#             print(f"Date: {email.get('date')}")
+#     else:
+#         print("No emails found matching the criteria.")
 
-    print("\n" + "=" * 30 + "\n")
+    # print("\n" + "=" * 30 + "\n")

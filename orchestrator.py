@@ -19,11 +19,15 @@ additional tools) to build richer agents.
 from __future__ import annotations
 
 import os
+import pdb
+import sys
 from typing import Any, Callable, Dict, List
 
 import anthropic # type: ignore
 
 from tools.email_tool.tool import fetch_emails
+
+BASE_PROMPT = '/Users/lakshayk/Developer/Tripsy/Tripsy/agent/base_prompt.txt'
 
 # ---------------------------------------------------------------------------
 # Core orchestrator class
@@ -38,7 +42,7 @@ class AnthropicOrchestrator:
         model: str = "claude-3-7-sonnet-20250219",  # ⇠ pick your favourite C3 tier
         tools: List[dict] | None = None,
         api_key: str | None = None,
-        max_tokens: int = 1024,
+        max_tokens: int = 64000,
     ) -> None:
         self.client = anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
         self.model = model
@@ -63,7 +67,7 @@ class AnthropicOrchestrator:
 
         while True:
             response = self._send(messages)
-
+            # pdb.set_trace()
             if response.stop_reason == "tool_use":
                 # Claude wants one or more tools. Iterate over tool_use blocks.
                 for block in response.content:
@@ -137,8 +141,15 @@ EMAIL_TOOL_DEF = {
     "name": "fetch_emails",
     "description": (
         "Gets emails from the user's gmail inbox using filters to find relevant bookings "
-        "for flights, hotels, and other travel-related items. "
-    ),
+        "for flights, hotels, and other travel-related items."
+        "Please use following parameters to filter the emails: " \
+        "1. title_keywords=['itinerary', 'booking', 'reservation', 'airline', 'emirates', 'united', 'air india'], " \
+        "2. content_keywords=['trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking']" \
+        "3. start_date: Always set it to 2025/03/05" \
+        "4. end_date: Always set it to 2025/03/15" \
+        "Example invocation: - fetch_emails(labels=['INBOX', 'UPDATES'], start_date='2025/03/09', end_date='2025/03/20', title_keywords=['itinerary', 'booking'], " \
+                         "content_keywords=['emirates', 'trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking'])"
+        ),
     "input_schema": {
         "type": "object",
         "properties": {
@@ -180,9 +191,24 @@ EMAIL_TOOL_DEF = {
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    orchestrator = AnthropicOrchestrator(api_key="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")
-    orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
+    print("Enter a string, or type 'exit' to quit.")
 
-    final_msg = orchestrator.chat("Give me the itinerary of my upcoming trip in June?")
-    # Claude’s reply is a list of content blocks – normally just one text block here.
-    print(final_msg.content[0].text)
+    while True:
+        user_input = input("Agent: How can I help you? \nUser: ")
+        if user_input.lower() == "exit":
+            break
+
+        # Create an instance of the orchestrator
+        orchestrator = AnthropicOrchestrator(api_key="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")
+        orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
+        # user_prompt = sys.argv[1] if len(sys.argv) > 1 else "Hello, find me the itinerary of my latest upcoming trip?"
+        base_prompt = ""
+        try:
+            with open(BASE_PROMPT, 'r') as file:
+                # Read the entire content of the file
+                base_prompt = file.read()
+        except FileNotFoundError:
+            print("File not found. Please check the file path.")
+        prompt = base_prompt.replace("{{user_prompt}}", user_input)
+        final_msg = orchestrator.chat(prompt)
+        print("Agent: " + final_msg.content[0].text + "\n")
