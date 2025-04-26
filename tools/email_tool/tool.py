@@ -158,7 +158,7 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
 
         # Build the query string
         query = build_query(labels, start_date, end_date, title_keywords, content_keywords)
-        print(f"Using query: {query}") # Print the query for debugging
+        # print(f"Using query: {query}") # Print the query for debugging
 
         # Call the Gmail API to list messages
         results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
@@ -214,10 +214,6 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
                             break
 
                 if content_match:
-                     print(f"Email ID: {email_data['id']}")
-                     print(f"Subject: {email_data['subject']}")
-                     print(f"From: {email_data['from']}")
-                     print(f"Date: {email_data['date']}")
                      fetched_emails.append(email_data)
 
         return fetched_emails
