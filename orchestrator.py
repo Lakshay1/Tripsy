@@ -376,27 +376,39 @@ EMAIL_TOOL_DEF = {
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    orchestrator = AnthropicOrchestrator(api_key="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")
-    orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
+    print("Enter a string, or type 'exit' to quit.")
 
-    image_path = "location.jpg"
-    video_path = "video.mp4"
-    output_dir = "keyframes"
-    download_folder = "./downloads"
+    while True:
+        user_input = input("Agent: How can I help you? \nUser: ")
+        if user_input.lower() == "exit":
+            break
 
-    keyframes = extract_n_keyframes(video_path, output_dir)
-    print(f"Extracted {len(keyframes)} keyframes:")
-    for path in keyframes:
-        print(path)
-    image_paths = keyframes
+        # Create an instance of the orchestrator
+        orchestrator = AnthropicOrchestrator(api_key="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")
+        orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
+        image_path = "location.jpg"
+        video_path = "video.mp4"
+        output_dir = "keyframes"
+        download_folder = "./downloads"
 
-    orchestrator.register_tool(UNDERSTAND_IMAGE_TOOL_DEF, get_image_location)
-    orchestrator.register_tool(UNDERSTAND_IMAGES_TOOL_DEF, get_images_location)
+        keyframes = extract_n_keyframes(video_path, output_dir)
+        print(f"Extracted {len(keyframes)} keyframes:")
+        for path in keyframes:
+            print(path)
+        image_paths = keyframes
 
-    screenshots_prompt = f"I have uploaded 4 images at {image_paths}. Can you figure out where is this location?"
-    # final_msg = orchestrator.chat(screenshots_prompt)
+        orchestrator.register_tool(UNDERSTAND_IMAGE_TOOL_DEF, get_image_location)
+        orchestrator.register_tool(UNDERSTAND_IMAGES_TOOL_DEF, get_images_location)
 
-
-    final_msg = orchestrator.chat("Give me the itinerary of my upcoming trip in June?")
-    # Claude’s reply is a list of content blocks – normally just one text block here.
-    print(final_msg.content[0].text)
+        base_prompt = ""
+        try:
+            with open(BASE_PROMPT, 'r') as file:
+                # Read the entire content of the file
+                base_prompt = file.read()
+        except FileNotFoundError:
+            print("File not found. Please check the file path.")
+        
+        # Example screenshots_prompt = f"I have uploaded 4 images at {image_paths}. Can you figure out where is this location?"
+        prompt = base_prompt.replace("{{user_prompt}}", user_input)
+        final_msg = orchestrator.chat(prompt)
+        print("Agent: " + final_msg.content[0].text + "\n")
