@@ -2,7 +2,8 @@
 Skeleton orchestrator agent that demonstrates Anthropic tool‑use (function calling).
 
 ▸ Requires the `anthropic` Python SDK ≥ 0.23.0
-   pip install anthropic
+   pip3 install anthropic
+   pip3 install google-api-python-client google-auth-oauthlib google-auth-httplib2
 
 ▸ Make sure the `ANTHROPIC_API_KEY` environment variable is set before running:
    export ANTHROPIC_API_KEY="sk‑..."
@@ -20,7 +21,9 @@ from __future__ import annotations
 import os
 from typing import Any, Callable, Dict, List
 
-import anthropic
+import anthropic # type: ignore
+
+from tools.email_tool.tool import fetch_emails
 
 # ---------------------------------------------------------------------------
 # Core orchestrator class
@@ -126,30 +129,48 @@ class AnthropicOrchestrator:
 # Demo: a trivial weather tool
 # ---------------------------------------------------------------------------
 
-def get_weather(location: str, unit: str = "celsius") -> str:
-    """Dummy weather implementation (replace with a real API like OpenWeather)."""
-    return f"The current weather in {location} is 15° {unit}. (stub)"
+# def fetch_emails(location: str, unit: str = "celsius") -> str:
+#     """Dummy weather implementation (replace with a real API like OpenWeather)."""
+#     return f"The current weather in {location} is 15° {unit}. (stub)"
 
-WEATHER_TOOL_DEF = {
-    "name": "get_weather",
+EMAIL_TOOL_DEF = {
+    "name": "fetch_emails",
     "description": (
-        "Returns the current weather at a given location. Only call this tool "
-        "when the user explicitly asks for weather information."
+        "Gets emails from the user's gmail inbox using filters to find relevant bookings "
+        "for flights, hotels, and other travel-related items. "
     ),
     "input_schema": {
         "type": "object",
         "properties": {
-            "location": {
-                "type": "string",
-                "description": "City and state (e.g. San Francisco, CA) or City and country.",
+            "labels": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "List of labels to filter emails by (e.g. ['travel', 'bookings', 'flights', 'location']).",
             },
-            "unit": {
+            "start_date": {
                 "type": "string",
-                "enum": ["celsius", "fahrenheit"],
-                "description": "Temperature unit to return (defaults to celsius).",
+                "description": "Filter to specify start date from where emails should be read from.",
+            },
+            "end_date": {
+                "type": "string",
+                "description": "Filter to specify end date until where emails should be read from.",
+            },
+            "title_keywords": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "List of keywords to filter emails by (e.g. ['flight', 'hotel', 'booking']).",
+            },
+            "content_keywords": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "List of keywords to filter emails by (e.g. ['flight', 'hotel', 'booking']). Defaults to []",
+            },
+            "max_results": {
+                "type": "integer",
+                "description": "Maximum number of emails to return. Defaults to 50.",
             },
         },
-        "required": ["location"],
+        "required": [],
     },
 }
 
@@ -160,8 +181,8 @@ WEATHER_TOOL_DEF = {
 
 if __name__ == "__main__":
     orchestrator = AnthropicOrchestrator(api_key="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")
-    orchestrator.register_tool(WEATHER_TOOL_DEF, get_weather)
+    orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
 
-    final_msg = orchestrator.chat("What's the weather in Tokyo today, in Fahrenheit?")
+    final_msg = orchestrator.chat("Give me the itinerary of my upcoming trip in June?")
     # Claude’s reply is a list of content blocks – normally just one text block here.
     print(final_msg.content[0].text)
