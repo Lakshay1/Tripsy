@@ -46,7 +46,7 @@ class AnthropicOrchestrator:
         model: str = "claude-3-7-sonnet-20250219",  # ⇠ pick your favourite C3 tier
         tools: List[dict] | None = None,
         api_key: str | None = None,
-        max_tokens: int = 64000,
+        max_tokens: int = 5000,
     ) -> None:
         self.client = anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
         self.model = model
@@ -284,7 +284,7 @@ def get_video_rotation(video_path: str) -> int:
 UNDERSTAND_IMAGE_TOOL_DEF = {
     "name": "get_image_location",
     "description": (
-        "Analyzes the provided screenshot and returns a location."
+        "Analyzes the provided screenshot and returns a location. Should be used only when single image is provided as input."
     ),
     "input_schema": {
         "type": "object",
@@ -301,7 +301,7 @@ UNDERSTAND_IMAGE_TOOL_DEF = {
 UNDERSTAND_IMAGES_TOOL_DEF = {
     "name": "get_images_location",
     "description": (
-        "Analyzes the provided screenshots and returns the location."
+        "Analyzes the provided images and returns the location. Should be used only when images are provided as input."
     ),
     "input_schema": {
         "type": "object",
@@ -385,7 +385,6 @@ if __name__ == "__main__":
 
         # Create an instance of the orchestrator
         orchestrator = AnthropicOrchestrator(api_key="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")
-        orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
         image_path = "location.jpg"
         video_path = "video.mp4"
         output_dir = "keyframes"
@@ -397,6 +396,7 @@ if __name__ == "__main__":
             print(path)
         image_paths = keyframes
 
+        orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
         orchestrator.register_tool(UNDERSTAND_IMAGE_TOOL_DEF, get_image_location)
         orchestrator.register_tool(UNDERSTAND_IMAGES_TOOL_DEF, get_images_location)
 
@@ -407,8 +407,9 @@ if __name__ == "__main__":
                 base_prompt = file.read()
         except FileNotFoundError:
             print("File not found. Please check the file path.")
-        
+
         # Example screenshots_prompt = f"I have uploaded 4 images at {image_paths}. Can you figure out where is this location?"
         prompt = base_prompt.replace("{{user_prompt}}", user_input)
+        print("Prompt: " + prompt + "\n")
         final_msg = orchestrator.chat(prompt)
         print("Agent: " + final_msg.content[0].text + "\n")
