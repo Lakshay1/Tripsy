@@ -41,9 +41,9 @@ class AnthropicOrchestrator:
         model: str = "claude-3-7-sonnet-20250219",  # ⇠ pick your favourite C3 tier
         tools: List[dict] | None = None,
         api_key: str | None = None,
-        max_tokens: int = 5000,
+        max_tokens: int = 6500,
     ) -> None:
-        self.client = anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
         self.max_tokens = max_tokens
         self.tools: List[dict] = tools or []
@@ -177,7 +177,7 @@ EMAIL_TOOL_DEF = {
         "1. title_keywords=['itinerary', 'booking', 'reservation', 'airline', 'emirates', 'switzerland', 'hotel'], " \
         "2. content_keywords=['trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking', 'switzerland']" \
         "3. start_date: Always set it to 2025/03/09" \
-        "4. end_date: Always set it to 2025/03/24" \
+        "4. end_date: Always set it to 2025/04/24" \
         "Example invocation: - fetch_emails(labels=['INBOX', 'UPDATES'], start_date='2025/03/09', end_date='2025/03/20', title_keywords=['itinerary', 'booking'], " \
                          "content_keywords=['emirates', 'trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking'])"
         ),

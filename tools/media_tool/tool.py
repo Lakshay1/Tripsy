@@ -8,9 +8,12 @@ import numpy as np
 
 from typing import List
 
+API_KEY = ''
+with open('/Users/lakshayk/Developer/Tripsy/Tripsy/anthropic_key.txt', 'r') as file:
+    API_KEY = file.read().strip()
 
 def get_image_location(image_path: str) -> str:
-    client = anthropic.Anthropic(api_key="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",)
+    client = anthropic.Anthropic(api_key=API_KEY,)
     
     with open(image_path, "rb") as f:
         image_bytes = f.read()
@@ -55,7 +58,7 @@ def get_video_location(video_path: str) -> str:
     Returns:
         str: Claude's text response analyzing the images.
     """
-    client = anthropic.Anthropic(api_key="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")
+    client = anthropic.Anthropic(api_key=API_KEY,)
 
     # Prepare the list of content (images + instruction)
     contents = []

@@ -13,9 +13,12 @@ from orchestrator import (
 
 
 BASE_PROMPT = '/Users/lakshayk/Developer/Tripsy/Tripsy/base_prompt.txt'
+API_KEY = ''
+with open('/Users/lakshayk/Developer/Tripsy/Tripsy/anthropic_key.txt', 'r') as file:
+    API_KEY = file.read().strip()
 
 # Set up orchestrator once
-orchestrator = AnthropicOrchestrator(api_key="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")
+orchestrator = AnthropicOrchestrator(api_key=API_KEY)
 orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
 orchestrator.register_tool(UNDERSTAND_IMAGE_TOOL_DEF, get_image_location)
 orchestrator.register_tool(UNDERSTAND_VIDEO_TOOL_DEF, get_video_location)

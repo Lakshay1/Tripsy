@@ -1,2 +1,4 @@
 .DS_Store
-token.json
+tools/email_tool/token.json
+tools/email_tool/credentials.json
+anthropic_key.txt

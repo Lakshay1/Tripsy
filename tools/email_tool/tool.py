@@ -13,8 +13,6 @@ from googleapiclient.errors import HttpError # type: ignore
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 GMAIL_CREDS_LOCAL_PATH = '/Users/lakshayk/Developer/Tripsy/Tripsy/tools/email_tool/'
 
-# class EmailTool:
-
 def authenticate_gmail_api():
     """Shows basic usage of the Gmail API.
     Lists the user's Gmail labels.
@@ -40,7 +38,7 @@ def authenticate_gmail_api():
 
     return creds
 
-def build_query(labels=['INBOX', 'UPDATES'], start_date=None, end_date=None, title_keywords=None, content_keywords=None):
+def build_query(labels=['VACATION'], start_date=None, end_date=None, title_keywords=None, content_keywords=None):
     """
     Builds the Gmail API query string based on provided filters.
 
@@ -57,9 +55,7 @@ def build_query(labels=['INBOX', 'UPDATES'], start_date=None, end_date=None, tit
     query_parts = []
 
     if labels:
-        # By default, labels are combined with AND logic in Gmail API query
-        label_query_parts = [f'label:{label}' for label in labels]
-        query_parts.append(' OR '.join(label_query_parts))
+        query_parts.append('label:VACATION') # Default label is 'VACATION'
 
     if start_date:
         query_parts.append(f'after:{start_date}')
@@ -158,7 +154,7 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
 
         # Build the query string
         query = build_query(labels, start_date, end_date, title_keywords, content_keywords)
-        # print(f"Using query: {query}") # Print the query for debugging
+        print(f"Using query: {query}") # Print the query for debugging
 
         # Call the Gmail API to list messages
         results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
@@ -198,7 +194,7 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
                     elif header['name'] == 'Date':
                         email_data['date'] = header['value']
                 
-                body = (html_body or plain_text_body or '') # Use HTML body if available, otherwise use plain text
+                body = (plain_text_body or html_body or '') # Use HTML body if available, otherwise use plain text
                 email_data['body'] = body # Add the body to the email data for llm parsing
 
                 # Match content
@@ -215,7 +211,6 @@ def fetch_emails(labels=None, start_date=None, end_date=None, title_keywords=Non
 
                 if content_match:
                      fetched_emails.append(email_data)
-
         return fetched_emails
 
     except HttpError as error:
