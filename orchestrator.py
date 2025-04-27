@@ -233,7 +233,7 @@ EMAIL_TOOL_DEF = {
 #             continue
 
 #         # Create an instance of the orchestrator
-#         orchestrator = AnthropicOrchestrator(api_key="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")
+#         orchestrator = AnthropicOrchestrator(api_key="")
 #         # image_path = "location.jpg"
 #         # video_path = "video.mp4"
 
