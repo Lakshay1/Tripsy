@@ -26,7 +26,7 @@ import numpy as np
 from tools.email_tool.tool import fetch_emails
 from tools.media_tool.tool import get_image_location, get_video_location
 
-BASE_PROMPT = '/Users/lakshayk/Developer/Tripsy/Tripsy/base_prompt.txt'
+# BASE_PROMPT = '/Users/lakshayk/Developer/Tripsy/Tripsy/base_prompt.txt'
 
 # ---------------------------------------------------------------------------
 # Core orchestrator class
@@ -220,35 +220,35 @@ EMAIL_TOOL_DEF = {
 # Entrypoint
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    print("Enter a string, or type 'exit' to quit.")
+# if __name__ == "__main__":
+#     print("Enter a string, or type 'exit' to quit.")
 
-    while True:
-        user_input = input("Agent: How can I help you? \nUser: ")
-        if user_input.lower() == "exit":
-            break
-        if user_input == "":
-            continue
+#     while True:
+#         user_input = input("Agent: How can I help you? \nUser: ")
+#         if user_input.lower() == "exit":
+#             break
+#         if user_input == "":
+#             continue
 
-        # Create an instance of the orchestrator
-        orchestrator = AnthropicOrchestrator(api_key="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")
-        # image_path = "location.jpg"
-        # video_path = "video.mp4"
+#         # Create an instance of the orchestrator
+#         orchestrator = AnthropicOrchestrator(api_key="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")
+#         # image_path = "location.jpg"
+#         # video_path = "video.mp4"
 
-        orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
-        orchestrator.register_tool(UNDERSTAND_IMAGE_TOOL_DEF, get_image_location)
-        orchestrator.register_tool(UNDERSTAND_VIDEO_TOOL_DEF, get_video_location)
+#         orchestrator.register_tool(EMAIL_TOOL_DEF, fetch_emails)
+#         orchestrator.register_tool(UNDERSTAND_IMAGE_TOOL_DEF, get_image_location)
+#         orchestrator.register_tool(UNDERSTAND_VIDEO_TOOL_DEF, get_video_location)
 
-        base_prompt = ""
-        try:
-            with open(BASE_PROMPT, 'r') as file:
-                # Read the entire content of the file
-                base_prompt = file.read()
-        except FileNotFoundError:
-            print("File not found. Please check the file path.")
+#         base_prompt = ""
+#         try:
+#             with open(BASE_PROMPT, 'r') as file:
+#                 # Read the entire content of the file
+#                 base_prompt = file.read()
+#         except FileNotFoundError:
+#             print("File not found. Please check the file path.")
 
-        # Example screenshots_prompt = f"I have uploaded 4 images at {image_paths}. Can you figure out where is this location?"
-        prompt = base_prompt.replace("{{user_prompt}}", user_input)
-        print("Prompt: " + prompt + "\n")
-        final_msg = orchestrator.chat(prompt)
-        print("Agent: " + final_msg.content[0].text + "\n")
+#         # Example screenshots_prompt = f"I have uploaded 4 images at {image_paths}. Can you figure out where is this location?"
+#         prompt = base_prompt.replace("{{user_prompt}}", user_input)
+#         print("Prompt: " + prompt + "\n")
+#         final_msg = orchestrator.chat(prompt)
+#         print("Agent: " + final_msg.content[0].text + "\n")
