@@ -48,6 +48,7 @@ class AnthropicOrchestrator:
         self.max_tokens = max_tokens
         self.tools: List[dict] = tools or []
         self._registry: Dict[str, Callable[..., Any]] = {}
+        self._messages: List[dict] = []
 
     # ---------------------------------------------------------------------
     # Public API
@@ -62,10 +63,11 @@ class AnthropicOrchestrator:
 
     def chat(self, user_prompt: str) -> anthropic.types.Message:
         """High‑level helper: send `user_prompt`, run tools if requested, return final msg."""
-        messages: List[dict] = [{"role": "user", "content": user_prompt}]
+        # messages: List[dict] = [{"role": "user", "content": user_prompt}]
+        self._messages.append({"role": "user", "content": user_prompt})
 
         while True:
-            response = self._send(messages)
+            response = self._send(self._messages)
             # pdb.set_trace()
             if response.stop_reason == "tool_use":
                 # Claude wants one or more tools. Iterate over tool_use blocks.
@@ -80,7 +82,7 @@ class AnthropicOrchestrator:
                     result, error_flag = self._execute_local_tool(tool_name, tool_args)
 
                     # Tell Claude the result so it can compose its answer.
-                    messages.extend(
+                    self._messages.extend(
                         [
                             {"role": "assistant", "content": response.content},
                             {
@@ -172,10 +174,10 @@ EMAIL_TOOL_DEF = {
         "Gets emails from the user's gmail inbox using filters to find relevant bookings "
         "for flights, hotels, and other travel-related items."
         "Please use following parameters to filter the emails: " \
-        "1. title_keywords=['itinerary', 'booking', 'reservation', 'airline', 'emirates', 'united', 'air india'], " \
-        "2. content_keywords=['trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking']" \
-        "3. start_date: Always set it to 2025/03/05" \
-        "4. end_date: Always set it to 2025/03/15" \
+        "1. title_keywords=['itinerary', 'booking', 'reservation', 'airline', 'emirates', 'switzerland', 'hotel'], " \
+        "2. content_keywords=['trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking', 'switzerland']" \
+        "3. start_date: Always set it to 2025/03/09" \
+        "4. end_date: Always set it to 2025/03/24" \
         "Example invocation: - fetch_emails(labels=['INBOX', 'UPDATES'], start_date='2025/03/09', end_date='2025/03/20', title_keywords=['itinerary', 'booking'], " \
                          "content_keywords=['emirates', 'trip', 'fly', 'booking', 'hotel', 'itinerary', 'flight', 'reservation', 'airbnb', 'booking'])"
         ),
